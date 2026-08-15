@@ -696,21 +696,6 @@ Typical deployment architecture:
 
 ---
 
-# 🔐 Environment Variables
-
-Do not commit secret values to GitHub.
-
-Example:
-
-```env
-DATABASE_URL=your_database_url
-```
-
-If the project uses a JWT secret stored through environment variables, keep that secret outside the repository as well.
-
-The `.env` file should normally be included in `.gitignore`.
-
----
 
 # 🎯 Learning Goals
 
@@ -782,10 +767,10 @@ Some advanced production features such as complex role management, refresh-token
 
 # 👩‍💻 Author
 
-**Manahil Shah**
-
-Computer Science Student  
+**Minahil Shah**
+ 
 Frontend Developer / Full-Stack Learner
+Gen AI -103 Trainee
 
 ---
 
