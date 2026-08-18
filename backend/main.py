@@ -50,6 +50,7 @@ app.add_middleware(
     # Allow requests from our local Next.js frontend
     allow_origins=[
         "http://localhost:3000",
+        "https://task-management-app-one-nu.vercel.app",
     ],
 
     # Allow cookies/authorization-related browser behavior

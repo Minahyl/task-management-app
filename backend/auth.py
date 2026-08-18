@@ -1,5 +1,7 @@
 # Import JWT functions from python-jose
 from jose import jwt, JWTError
+import os
+from dotenv import load_dotenv
 
 # Import datetime tools for token expiration
 from datetime import datetime, timedelta
@@ -24,8 +26,10 @@ from models_user import User
 # JWT CONFIGURATION
 # ==============================
 
-# Secret key used to sign JWT tokens
-SECRET_KEY = "my-super-secret-key-change-this-later"
+load_dotenv()
+
+# Secret key environment variable se ayegi
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # Algorithm used to sign JWT tokens
 ALGORITHM = "HS256"
