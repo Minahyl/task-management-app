@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from fastapi.middleware.cors import CORSMiddleware
 
 # Import our database session dependency
-from database import get_db
+from database import get_db, Base, engine
 
 # Import our SQLAlchemy Task model
 # We rename it to TaskModel to avoid confusion with the Pydantic model
@@ -36,6 +36,10 @@ from models_user import User
 # ==========================================
 
 app = FastAPI()
+
+
+# Create all database tables
+Base.metadata.create_all(bind=engine)
 
 
 # ==========================================
