@@ -14,21 +14,21 @@ from sqlalchemy.orm import Session
 # with the FastAPI backend
 from fastapi.middleware.cors import CORSMiddleware
 
-# Import our database session dependency
+# Import database session dependency, Base class and engine
 from database import get_db, Base, engine
 
 # Import our SQLAlchemy Task model
 # We rename it to TaskModel to avoid confusion with the Pydantic model
 from models import Task as TaskModel
 
+# Import our SQLAlchemy User model
+from models_user import User
+
 # Import authentication router
 from auth_routes import router as auth_router
 
 # Import the dependency that identifies the logged-in user
 from auth import get_current_user
-
-# Import our SQLAlchemy User model
-from models_user import User
 
 
 # ==========================================
@@ -38,32 +38,47 @@ from models_user import User
 app = FastAPI()
 
 
-# Create all database tables
-Base.metadata.create_all(bind=engine)
+# ==========================================
+# DATABASE STARTUP
+# ==========================================
+
+@app.on_event("startup")
+def create_database_tables():
+
+    print("Creating database tables...")
+
+    # Create all SQLAlchemy tables that are registered
+    # in Base.metadata
+    Base.metadata.create_all(bind=engine)
+
+    print("Database tables created successfully!")
+
+    # Show which tables SQLAlchemy knows about
+    print(
+        "Available tables:",
+        list(Base.metadata.tables.keys())
+    )
 
 
 # ==========================================
 # CORS CONFIGURATION
 # ==========================================
 
-# Our Next.js frontend will normally run on port 3000
-# This allows the frontend to communicate with FastAPI
+# This allows our Next.js frontend to communicate
+# with the FastAPI backend
+
 app.add_middleware(
     CORSMiddleware,
 
-    # Allow requests from our local Next.js frontend
     allow_origins=[
         "http://localhost:3000",
         "https://task-management-app-one-nu.vercel.app",
     ],
 
-    # Allow cookies/authorization-related browser behavior
     allow_credentials=True,
 
-    # Allow all HTTP methods
     allow_methods=["*"],
 
-    # Allow all headers
     allow_headers=["*"],
 )
 
@@ -72,11 +87,12 @@ app.add_middleware(
 # AUTHENTICATION ROUTES
 # ==========================================
 
-# Include all authentication routes
+# Include authentication routes
 #
 # POST /auth/register
 # POST /auth/login
 # GET  /auth/me
+
 app.include_router(auth_router)
 
 
@@ -85,6 +101,7 @@ app.include_router(auth_router)
 # ==========================================
 
 # Define the only three status values allowed for a task
+
 class TaskStatus(str, Enum):
 
     # Task has not been started yet
@@ -103,6 +120,7 @@ class TaskStatus(str, Enum):
 
 # Define the structure of data received
 # when creating or updating a task
+
 class TaskCreate(BaseModel):
 
     # Task title
@@ -120,10 +138,13 @@ class TaskCreate(BaseModel):
 # ==========================================
 
 # Handle GET requests to the root URL "/"
+
 @app.get("/")
 def home():
 
-    # Return a simple message to confirm that the API is running
+    # Return a simple message to confirm
+    # that the API is running
+
     return {
         "message": "Task Management API is running!"
     }
@@ -134,6 +155,7 @@ def home():
 # ==========================================
 
 # Handle GET requests to "/tasks"
+
 @app.get("/tasks")
 def get_tasks(
 
@@ -148,17 +170,20 @@ def get_tasks(
 
     # Require the user to be logged in
     current_user: User = Depends(get_current_user)
+
 ):
 
     # Start a database query
     #
     # IMPORTANT:
     # Only retrieve tasks belonging to the logged-in user
+
     query = db.query(TaskModel).filter(
         TaskModel.user_id == current_user.id
     )
 
     # If a status was provided, filter tasks by status
+
     if status:
 
         query = query.filter(
@@ -167,14 +192,17 @@ def get_tasks(
 
     # If a search term was provided,
     # search in title or description
+
     if search:
 
         # Add wildcard characters so partial matches are possible
         search_pattern = f"%{search}%"
 
         # Search both title and description
+
         query = query.filter(
-            (TaskModel.title.ilike(search_pattern)) |
+            (TaskModel.title.ilike(search_pattern))
+            |
             (TaskModel.description.ilike(search_pattern))
         )
 
@@ -191,6 +219,7 @@ def get_tasks(
 
 # Handle GET requests such as:
 # GET /tasks/1
+
 @app.get("/tasks/{task_id}")
 def get_task(
 
@@ -201,11 +230,13 @@ def get_task(
 
     # Require the user to be logged in
     current_user: User = Depends(get_current_user)
+
 ):
 
     # Search for the task using its ID
     #
-    # AND make sure it belongs to the logged-in user
+    # AND make sure it belongs to the current user
+
     task = db.query(TaskModel).filter(
         TaskModel.id == task_id,
         TaskModel.user_id == current_user.id
@@ -213,6 +244,7 @@ def get_task(
 
     # If the task does not exist
     # OR belongs to another user
+
     if not task:
 
         raise HTTPException(
@@ -229,6 +261,7 @@ def get_task(
 # ==========================================
 
 # Handle POST requests to "/tasks"
+
 @app.post(
     "/tasks",
     status_code=status.HTTP_201_CREATED
@@ -242,12 +275,13 @@ def create_task(
 
     # Require the user to be logged in
     current_user: User = Depends(get_current_user)
+
 ):
 
     # Create a new SQLAlchemy Task object
     #
-    # IMPORTANT:
     # Automatically attach the task to the logged-in user
+
     new_task = TaskModel(
         title=task.title,
         description=task.description,
@@ -274,6 +308,7 @@ def create_task(
 
 # Handle PUT requests such as:
 # PUT /tasks/1
+
 @app.put("/tasks/{task_id}")
 def update_task(
 
@@ -286,11 +321,13 @@ def update_task(
 
     # Require the user to be logged in
     current_user: User = Depends(get_current_user)
+
 ):
 
     # Find the task
     #
-    # AND make sure it belongs to the logged-in user
+    # AND make sure it belongs to the current user
+
     task = db.query(TaskModel).filter(
         TaskModel.id == task_id,
         TaskModel.user_id == current_user.id
@@ -298,6 +335,7 @@ def update_task(
 
     # If the task does not exist
     # OR belongs to another user
+
     if not task:
 
         raise HTTPException(
@@ -306,6 +344,7 @@ def update_task(
         )
 
     # Update task information
+
     task.title = updated_task.title
     task.description = updated_task.description
     task.status = updated_task.status.value
@@ -326,6 +365,7 @@ def update_task(
 
 # Handle DELETE requests such as:
 # DELETE /tasks/1
+
 @app.delete(
     "/tasks/{task_id}",
     status_code=status.HTTP_204_NO_CONTENT
@@ -339,11 +379,13 @@ def delete_task(
 
     # Require the user to be logged in
     current_user: User = Depends(get_current_user)
+
 ):
 
     # Find the task
     #
-    # AND make sure it belongs to the logged-in user
+    # AND make sure it belongs to the current user
+
     task = db.query(TaskModel).filter(
         TaskModel.id == task_id,
         TaskModel.user_id == current_user.id
@@ -351,6 +393,7 @@ def delete_task(
 
     # If the task does not exist
     # OR belongs to another user
+
     if not task:
 
         raise HTTPException(
